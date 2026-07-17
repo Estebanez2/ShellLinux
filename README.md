@@ -205,69 +205,323 @@ Dentro de la shell veras el prompt:
 COMMAND->
 ```
 
-Comandos basicos:
+Para salir de la shell, pulsa `Ctrl+D`.
+
+> Importante: esta shell separa argumentos por espacios y no implementa tuberias ni operadores de Bash como `|`, `;`, `&&` o `||`. Para tener varios procesos ocurriendo a la vez, usa `&`, `bgteam`, `delay-thread`, `+`, `jobs`, `fg` y `bg`.
+
+### Comandos externos del sistema
+
+Cualquier programa disponible dentro del sistema Linux se puede ejecutar como comando normal:
 
 ```bash
-ls
 pwd
-cd /tmp
+ls
+ls -la
 echo hola desde la shell
+ps
+sleep 2
 ```
 
-Procesos en segundo plano y jobs:
+### `cd`
+
+Cambia el directorio actual. Si no pasas ruta, intenta volver al directorio `HOME`.
 
 ```bash
-sleep 10 &
-jobs
-fg 1
-bg 1
+cd /tmp
+pwd
+cd
+pwd
 ```
 
-Redirecciones:
+### Redirecciones `<` y `>`
+
+Permiten leer entrada desde un archivo o escribir la salida en un archivo.
+
+Debe haber espacios antes y despues de `<` o `>`.
 
 ```bash
 echo hola > salida.txt
 cat < salida.txt
+ps > procesos.txt
+cat < procesos.txt
 ```
 
-Trabajo respawnable:
+Tambien se pueden combinar con otras funciones del shell:
+
+```bash
+sleep 2 > terminado.txt &
+delay-thread 3 echo delayed > delayed.txt
+```
+
+### Background con `&`
+
+Ejecuta un comando en segundo plano y devuelve el prompt inmediatamente.
+
+```bash
+sleep 20 &
+echo puedo seguir escribiendo mientras sleep sigue vivo
+jobs
+```
+
+Puedes lanzar varios procesos en background escribiendo varios comandos, uno por linea:
+
+```bash
+sleep 30 &
+sleep 40 &
+sleep 50 &
+jobs
+```
+
+### `jobs`
+
+Muestra los trabajos que la shell tiene guardados en su lista interna.
+
+```bash
+sleep 30 &
+jobs
+```
+
+### `currjob`
+
+Muestra el trabajo actual, que es el primero de la lista de jobs.
+
+```bash
+sleep 30 &
+sleep 40 &
+currjob
+```
+
+### `deljob`
+
+Borra el trabajo actual de la lista si no esta suspendido.
+
+```bash
+sleep 30 &
+jobs
+currjob
+deljob
+jobs
+```
+
+### `fg [posicion]`
+
+Trae un job al primer plano. Si no indicas posicion, usa la posicion `1`.
+
+```bash
+sleep 30 &
+jobs
+fg 1
+```
+
+Tambien puedes suspender un proceso en primer plano con `Ctrl+Z` y despues volver a traerlo:
+
+```bash
+sleep 60
+# Pulsa Ctrl+Z
+jobs
+fg 1
+```
+
+### `bg [posicion]`
+
+Reanuda en segundo plano un job suspendido. Si no indicas posicion, usa la posicion `1`.
+
+```bash
+sleep 60
+# Pulsa Ctrl+Z
+jobs
+bg 1
+jobs
+```
+
+### `parar`
+
+Envia `SIGSTOP` a los trabajos en background que esten registrados en la lista de jobs.
+
+```bash
+sleep 60 &
+sleep 70 &
+jobs
+parar
+jobs
+bg 1
+jobs
+```
+
+### `zjobs`
+
+Lista procesos zombie encontrados recorriendo `/proc`.
+
+```bash
+zjobs
+```
+
+Normalmente puede no mostrar nada si no hay procesos zombie en ese momento.
+
+### `bgteam N comando`
+
+Lanza `N` copias de un comando en background.
+
+```bash
+bgteam 3 sleep 20
+jobs
+```
+
+Ejemplo para ver varios procesos a la vez:
+
+```bash
+bgteam 4 sleep 30
+jobs
+ps
+```
+
+### Respawnable con `+`
+
+Si un comando termina con `+`, se guarda como respawnable. Cuando el proceso acaba, la shell lo vuelve a lanzar automaticamente hasta que lo pases a `fg` o `bg` y termine fuera del modo respawnable.
 
 ```bash
 sleep 3 +
+jobs
 ```
 
-Tiempo maximo de vida:
+Espera unos segundos y vuelve a consultar:
+
+```bash
+jobs
+```
+
+### `alarm-thread SEGUNDOS comando`
+
+Ejecuta un comando y lo mata si sigue vivo despues de los segundos indicados.
 
 ```bash
 alarm-thread 5 sleep 20
 ```
 
-Ejecucion diferida:
+Ejemplo donde no deberia matar nada porque el comando termina antes:
 
 ```bash
-delay-thread 3 echo hola
+alarm-thread 5 sleep 1
 ```
 
-Lanzamiento multiple en background:
+### `delay-thread SEGUNDOS comando`
+
+Espera los segundos indicados y luego lanza el comando en background.
 
 ```bash
-bgteam 3 sleep 10
+delay-thread 3 echo hola con retraso
+delay-thread 5 sleep 20
+jobs
 ```
 
-Enmascaramiento de senales:
+Ejemplo con varios eventos programados:
 
 ```bash
-mask 2 sleep 10
+delay-thread 2 echo primero
+delay-thread 4 echo segundo
+delay-thread 6 echo tercero
 ```
 
-Otros comandos internos disponibles:
+### `mask SENAL... -c comando`
+
+Ejecuta un comando bloqueando las senales indicadas en el proceso hijo. Las senales se pasan por numero y despues se escribe `-c` seguido del comando real.
 
 ```bash
-currjob
-deljob
-zjobs
-parar
+mask 2 -c sleep 20
+mask 2 15 -c sleep 20
+```
+
+Ejemplo con background:
+
+```bash
+mask 2 15 -c sleep 40 &
+jobs
+```
+
+### `desactivar`
+
+Desactiva el manejador de `SIGCHLD` de la shell y activa el comportamiento experimental de autokill/limpieza definido en el proyecto.
+
+```bash
 desactivar
+sleep 2 &
+jobs
+```
+
+### `activar`
+
+Restaura el manejador de `SIGCHLD`.
+
+```bash
 activar
+```
+
+### `limpiar`
+
+Fuerza una pasada del manejador de limpieza de hijos terminados.
+
+```bash
+sleep 1 &
+# Espera un par de segundos
 limpiar
+jobs
+```
+
+## Secuencias para probar varias cosas a la vez
+
+Copia estas lineas una a una dentro de la shell para ver varios mecanismos funcionando al mismo tiempo.
+
+### Jobs en paralelo, parada y reanudacion
+
+```bash
+sleep 60 &
+sleep 70 &
+bgteam 2 sleep 80
+jobs
+parar
+jobs
+bg 1
+fg 1
+```
+
+### Delays, redirecciones y jobs
+
+```bash
+delay-thread 2 echo primer delay > primer-delay.txt
+delay-thread 4 echo segundo delay > segundo-delay.txt
+sleep 5
+sleep 10 &
+jobs
+cat < primer-delay.txt
+cat < segundo-delay.txt
+```
+
+### Respawnable y control manual
+
+```bash
+sleep 3 +
+jobs
+# Espera 5 o 6 segundos
+jobs
+bg 1
+jobs
+```
+
+### Alarmas y background
+
+```bash
+alarm-thread 3 sleep 20
+sleep 30 &
+alarm-thread 5 sleep 10
+jobs
+```
+
+### Mask con procesos largos
+
+```bash
+mask 2 15 -c sleep 30 &
+jobs
+parar
+jobs
+bg 1
 ```
