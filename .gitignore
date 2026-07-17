@@ -1,0 +1,10 @@
+﻿shell
+Shell
+*.o
+*.out
+*.exe
+*.zip
+hup.txt
+.vscode/
+.idea/
+.DS_Store

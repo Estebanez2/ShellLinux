@@ -1,0 +1,13 @@
+EXPLICACIÓN AMPLIACIONES
+
+	1.- RESPAWNABLE
+En esta ampliaciones he tenido que cambiar en el get_command para que coja cuando un comando acaba en +, después he creado un nuevo struct en el job_control.h para poder guardar todas las cosas que identifican a un comando de manera que cuando se lance acabado en un + y se cierre o acaba este vuelva a crearse llamando a los elementos del struct con toda la información de este. Esto hasta que se ponga en bg o fg y se acabe. A nivel de código cuando se detecta un comando respawnable se crea un jobRespawnable que guarda su información al llamar a dividir(), y después en el manejador es donde se comprueba que si termina este comando se vuellva a lanzar.
+
+	2.- TIEMPO DE VIDA
+Para esta ampliacion al struct que cree anteriormente he tenido que añadirle los segundos de vida que se le pasan al comando al ejecutarlo. A nivel de código lo que he hecho ha sido al principio de todo compruebo si llamo a este comando especifico y si es asi asigno los segundos y después en el padre compruebo si los segundos de vida eran distinto de 0 en cuyo caso se crea un job con todos los datos del comando incluidos los segundos de vida para posteriormente llamar a una función que crea un thread a parte donde se ejecuta el comando y se duerme los segundos pasados como parámetros. Al terminar el sleep se hace un kill de ese comando acabando con el si después del tiempo no hubiera acabado. También se libera la memoria del job.
+
+	3.- DELAY
+Esta ampliación es relativamente parecida a la anterior por lo que he añadido en el struct una variable para los segundos de delay. En el código se comprueba al principio si se llamó a esta función en concreto en cuyo caso también asigno los segundos de delay y creamos un job con todos los datos del comando para despues llamar a la función que crea un hilo a parte y se duerme los segundos de delay para después ejecutarse en background llamando a la función dividir().
+
+	4.- ENMASCARAMIENTO
+Para esta ampliación he añadido al struct un contador de mask y un array donde guardo todas las que se le pasen al comando para ejecutarlas después. Lo primero esta vez es comprobar que se llama a la función mask. Luego se llama a una funcion que me mete en el array de nombrado antes las distintas señales a bloquear, posteriormente se crea un job con ese comando y se hace un fork con la función dividir(). Finalmente en el hijo es donde se bloquean las señales ya guardadas en el array de mask.

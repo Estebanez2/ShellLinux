@@ -1,0 +1,16 @@
+﻿.git
+.gitignore
+README.md
+LEEME-original.txt
+Dockerfile
+Makefile
+shell
+Shell
+*.o
+*.zip
+*.pdf
+*.docx
+hup.txt
+.vscode
+.idea
+.DS_Store
